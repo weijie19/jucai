@@ -19,9 +19,6 @@ jobs:
       - name: 生成 Android 工程脚手架
         run: flutter create --platforms=android --org com.xuzhe --project-name jucai .
 
-      - name: 提升 compileSdk 到 36
-        run: sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
-
       - name: 设置应用显示名
         run: sed -i 's/android:label="jucai"/android:label="聚财"/' android/app/src/main/AndroidManifest.xml
 
