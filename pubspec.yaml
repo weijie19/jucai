@@ -20,7 +20,7 @@ dependencies:
   fast_gbk: ^1.0.0
 
 dependency_overrides:
-  flutter_plugin_android_lifecycle: 2.0.17
+  flutter_plugin_android_lifecycle: 2.0.22
 
 dev_dependencies:
   flutter_test:
