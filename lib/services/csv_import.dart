@@ -27,9 +27,11 @@ class ParsedCsvRow {
 /// 把 CSV 文本解析成 [ParsedCsvRow] 列表。
 /// 通过表头自动识别列，兼容挖财常见的列名（日期/类型/分类/金额/备注/账户）。
 List<ParsedCsvRow> parseCsvContent(String content) {
+  final normalized = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
   final rows = const CsvToListConverter(
     shouldParseNumbers: false,
-  ).convert(content.trim());
+    eol: '\n',
+  ).convert(normalized.trim());
 
   if (rows.isEmpty) return const [];
 

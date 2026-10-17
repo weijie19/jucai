@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:fast_gbk/fast_gbk.dart';
 import 'package:file_picker/file_picker.dart';
@@ -38,7 +39,7 @@ class _ImportScreenState extends State<ImportScreen> {
 
   String _decode(List<int> bytes) {
     try {
-      return const Utf8Decoder().convert(bytes);
+      return utf8.decode(bytes);
     } catch (_) {
       return gbk.decode(bytes);
     }
