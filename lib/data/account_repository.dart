@@ -1,4 +1,3 @@
-import 'package:sqflite/sqflite.dart';
 import '../models/account.dart';
 import '../models/models.dart';
 import '../services/balance.dart';
@@ -20,7 +19,9 @@ class AccountRepository {
 
   Future<Account> insert(Account a) async {
     final db = await AppDatabase.instance.database;
-    final id = await db.insert('accounts', a.toMap()..remove('id'));
+    final map = a.toMap();
+    if (a.id == null) map.remove('id');
+    final id = await db.insert('accounts', map);
     return Account(
       id: id,
       name: a.name,
@@ -65,13 +66,37 @@ class AccountRepository {
       'SELECT COALESCE(SUM(amount_cents),0) FROM transfers WHERE to_account_id = ?',
       [accountId],
     );
+    final borrowTotal = await _sum(
+      "SELECT COALESCE(SUM(total_cents),0) FROM debts WHERE account_id = ? AND direction = 'borrow'",
+      [accountId],
+    );
+    final lendTotal = await _sum(
+      "SELECT COALESCE(SUM(total_cents),0) FROM debts WHERE account_id = ? AND direction = 'lend'",
+      [accountId],
+    );
+    final lendRepaid = await _sum(
+      "SELECT COALESCE(SUM(r.amount_cents),0) FROM debt_repayments r JOIN debts d ON r.debt_id = d.id "
+      "WHERE r.account_id = ? AND d.direction = 'lend'",
+      [accountId],
+    );
+    final borrowRepaid = await _sum(
+      "SELECT COALESCE(SUM(r.amount_cents),0) FROM debt_repayments r JOIN debts d ON r.debt_id = d.id "
+      "WHERE r.account_id = ? AND d.direction = 'borrow'",
+      [accountId],
+    );
     return computeBalance(
       initial: initial,
       income: income,
       expense: expense,
       transferOut: transferOut,
       transferIn: transferIn,
-    );
+    ) +
+        debtNetEffect(
+          borrowTotal: borrowTotal,
+          lendTotal: lendTotal,
+          lendRepaid: lendRepaid,
+          borrowRepaid: borrowRepaid,
+        );
   }
 
   Future<int> _sum(String sql, List<Object?> args) async {

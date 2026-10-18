@@ -1,4 +1,3 @@
-import 'package:sqflite/sqflite.dart';
 import '../models/models.dart';
 import 'database.dart';
 
@@ -29,7 +28,9 @@ class CategoryRepository {
 
   Future<Category> insert(Category c) async {
     final db = await AppDatabase.instance.database;
-    final id = await db.insert('categories', c.toMap()..remove('id'));
+    final map = c.toMap();
+    if (c.id == null) map.remove('id');
+    final id = await db.insert('categories', map);
     return Category(
       id: id,
       name: c.name,

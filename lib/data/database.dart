@@ -22,7 +22,7 @@ class AppDatabase {
     final path = p.join(dir.path, 'jucai.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -55,6 +55,7 @@ class AppDatabase {
         FOREIGN KEY (account_id) REFERENCES accounts(id)
       )
     ''');
+    await createDebtTagTables(db);
     await _seedDefaultCategories(db);
     await _seedDefaultAccounts(db);
   }
@@ -63,6 +64,9 @@ class AppDatabase {
     if (oldVersion < 2) {
       await _backupV1(db);
       await migrateV1toV2(db);
+    }
+    if (oldVersion < 3) {
+      await createDebtTagTables(db);
     }
   }
 
@@ -127,6 +131,56 @@ Future<void> createAccountTables(DatabaseExecutor db) async {
       category_id INTEGER,
       amount_cents INTEGER NOT NULL,
       FOREIGN KEY (category_id) REFERENCES categories(id)
+    )
+  ''');
+}
+
+/// 创建二期表：debts / debt_repayments / tags / transaction_tags。
+Future<void> createDebtTagTables(DatabaseExecutor db) async {
+  await db.execute('''
+    CREATE TABLE debts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      direction TEXT NOT NULL,
+      counterparty TEXT NOT NULL,
+      total_cents INTEGER NOT NULL,
+      remaining_cents INTEGER NOT NULL DEFAULT 0,
+      account_id INTEGER,
+      date TEXT NOT NULL,
+      note TEXT,
+      status TEXT NOT NULL DEFAULT 'open',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (account_id) REFERENCES accounts(id)
+    )
+  ''');
+  await db.execute('''
+    CREATE TABLE debt_repayments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      debt_id INTEGER NOT NULL,
+      amount_cents INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      account_id INTEGER,
+      note TEXT,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (debt_id) REFERENCES debts(id),
+      FOREIGN KEY (account_id) REFERENCES accounts(id)
+    )
+  ''');
+  await db.execute('''
+    CREATE TABLE tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      color INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    )
+  ''');
+  await db.execute('''
+    CREATE TABLE transaction_tags (
+      transaction_id INTEGER NOT NULL,
+      tag_id INTEGER NOT NULL,
+      PRIMARY KEY (transaction_id, tag_id),
+      FOREIGN KEY (transaction_id) REFERENCES transactions(id),
+      FOREIGN KEY (tag_id) REFERENCES tags(id)
     )
   ''');
 }

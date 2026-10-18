@@ -9,3 +9,7 @@ build/
 android/
 
 .venv/
+
+# Flutter generated
+.flutter-plugins-dependencies
+*.log

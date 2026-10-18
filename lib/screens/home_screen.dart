@@ -12,8 +12,11 @@ import 'account_screen.dart';
 import 'add_transaction_screen.dart';
 import 'budget_screen.dart';
 import 'category_screen.dart';
+import 'debt_screen.dart';
 import 'import_screen.dart';
+import 'report_screen.dart';
 import 'settings_screen.dart';
+import 'tag_screen.dart';
 import 'transfer_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -140,6 +143,29 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (v) async {
+              switch (v) {
+                case 'debt':
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtScreen()));
+                  _reload();
+                  break;
+                case 'report':
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportScreen()));
+                  break;
+                case 'tag':
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const TagScreen()));
+                  _reload();
+                  break;
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'debt', child: Text('借贷')),
+              PopupMenuItem(value: 'report', child: Text('报表')),
+              PopupMenuItem(value: 'tag', child: Text('标签')),
+            ],
           ),
         ],
       ),

@@ -18,6 +18,7 @@ dependencies:
   http: ^1.2.0
   shared_preferences: ^2.2.2
   fast_gbk: ^1.0.0
+  fl_chart: ^1.2.0
 
 dependency_overrides:
   flutter_plugin_android_lifecycle: 2.0.22

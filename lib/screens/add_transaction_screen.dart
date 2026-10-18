@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../data/account_repository.dart';
 import '../data/category_repository.dart';
+import '../data/tag_repository.dart';
 import '../data/transaction_repository.dart';
 import '../models/account.dart';
 import '../models/models.dart';
+import '../models/tag.dart';
 import '../services/amount.dart';
 import '../widgets/category_icons.dart';
 
@@ -20,6 +22,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _catRepo = CategoryRepository();
   final _txRepo = TransactionRepository();
   final _accountRepo = AccountRepository();
+  final _tagRepo = TagRepository();
 
   TxType _type = TxType.expense;
   final _amountController = TextEditingController();
@@ -27,6 +30,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   DateTime _date = DateTime.now();
   List<Category> _categories = [];
   List<Account> _accounts = [];
+  List<Tag> _tags = [];
+  List<int> _selectedTagIds = [];
   int? _categoryId;
   int? _accountId;
   bool _loading = true;
@@ -49,10 +54,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Future<void> _load() async {
     final cats = await _catRepo.getByType(_type);
     final accounts = await _accountRepo.getAll();
+    final tags = await _tagRepo.getAll();
+    final selectedTagIds = <int>[];
+    if (widget.transaction != null) {
+      final existing = await _tagRepo.tagsForTransaction(widget.transaction!.id!);
+      selectedTagIds.addAll(existing.map((t) => t.id!));
+    }
     if (!mounted) return;
     setState(() {
       _categories = cats;
       _accounts = accounts;
+      _tags = tags;
+      _selectedTagIds = selectedTagIds;
       if (_categoryId == null && cats.isNotEmpty) _categoryId = cats.first.id;
       _accountId ??= accounts.isNotEmpty ? accounts.first.id : null;
       _loading = false;
@@ -83,9 +96,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       updatedAt: now,
     );
     if (widget.transaction == null) {
-      await _txRepo.insert(t);
+      final saved = await _txRepo.insert(t);
+      await _tagRepo.setTagsForTransaction(saved.id!, _selectedTagIds);
     } else {
       await _txRepo.update(t);
+      await _tagRepo.setTagsForTransaction(widget.transaction!.id!, _selectedTagIds);
     }
     if (!mounted) return;
     Navigator.pop(context);
@@ -160,6 +175,31 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     );
                   }).toList(),
                 ),
+                if (_tags.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Text('标签', style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _tags.map((tag) {
+                      final selected = _selectedTagIds.contains(tag.id);
+                      return FilterChip(
+                        label: Text(tag.name),
+                        selected: selected,
+                        onSelected: (v) {
+                          setState(() {
+                            if (v) {
+                              _selectedTagIds.add(tag.id!);
+                            } else {
+                              _selectedTagIds.remove(tag.id!);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 ListTile(
                   contentPadding: EdgeInsets.zero,

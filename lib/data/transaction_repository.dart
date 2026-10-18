@@ -1,11 +1,12 @@
-import 'package:sqflite/sqflite.dart' hide Transaction;
 import '../models/models.dart';
 import 'database.dart';
 
 class TransactionRepository {
   Future<Transaction> insert(Transaction t) async {
     final db = await AppDatabase.instance.database;
-    final id = await db.insert('transactions', t.toMap()..remove('id'));
+    final map = t.toMap();
+    if (t.id == null) map.remove('id');
+    final id = await db.insert('transactions', map);
     return Transaction(
       id: id,
       type: t.type,

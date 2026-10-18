@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../data/account_repository.dart';
 import '../data/budget_repository.dart';
 import '../data/category_repository.dart';
+import '../data/debt_repository.dart';
+import '../data/tag_repository.dart';
 import '../data/transaction_repository.dart';
 import '../data/transfer_repository.dart';
 import '../services/backup.dart';
@@ -72,6 +74,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         accounts: await AccountRepository().getAll(),
         transfers: await TransferRepository().getAll(),
         budgets: await BudgetRepository().getAll(),
+        debts: await DebtRepository().getAll(),
+        debtRepayments: await DebtRepository().getAllRepayments(),
+        tags: await TagRepository().getAll(),
+        transactionTags: await TagRepository().getAllLinks(),
       );
       await uploadBackup(cfg, encodeBackup(data));
       if (!mounted) return;
@@ -124,12 +130,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final accountRepo = AccountRepository();
     final transferRepo = TransferRepository();
     final budgetRepo = BudgetRepository();
+    final debtRepo = DebtRepository();
+    final tagRepo = TagRepository();
 
     await txRepo.deleteAll();
     await transferRepo.deleteAll();
     await budgetRepo.deleteAll();
     await catRepo.deleteAll();
     await accountRepo.deleteAll();
+    await debtRepo.deleteAll();
+    await tagRepo.deleteAll();
 
     for (final c in data.categories) {
       await catRepo.insert(c);
@@ -146,6 +156,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     for (final b in data.budgets) {
       await budgetRepo.upsert(b);
     }
+    for (final d in data.debts) {
+      await debtRepo.insert(d);
+    }
+    for (final r in data.debtRepayments) {
+      await debtRepo.insertRepayment(r);
+    }
+    for (final t in data.tags) {
+      await tagRepo.insert(t);
+    }
+    await tagRepo.insertLinks(data.transactionTags);
   }
 
   @override

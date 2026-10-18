@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jucai/models/account.dart';
 import 'package:jucai/models/budget.dart';
+import 'package:jucai/models/debt.dart';
+import 'package:jucai/models/debt_repayment.dart';
 import 'package:jucai/models/models.dart';
+import 'package:jucai/models/tag.dart';
 import 'package:jucai/models/transfer.dart';
 import 'package:jucai/services/backup.dart';
 
@@ -32,6 +35,27 @@ void main() {
       budgets: const [
         Budget(amountCents: 300000),
       ],
+      debts: [
+        Debt(
+          id: 1,
+          direction: DebtDirection.lend,
+          counterparty: '张三',
+          totalCents: 10000,
+          remainingCents: 4000,
+          date: '2022-05-01',
+          createdAt: 1,
+          updatedAt: 2,
+        ),
+      ],
+      debtRepayments: [
+        DebtRepayment(debtId: 1, amountCents: 6000, date: '2022-05-10', createdAt: 3),
+      ],
+      tags: const [
+        Tag(id: 1, name: '旅行', color: 0xFF42A5F5, createdAt: 1),
+      ],
+      transactionTags: const [
+        {'transaction_id': 1, 'tag_id': 1},
+      ],
     );
 
     final json = encodeBackup(data);
@@ -43,5 +67,9 @@ void main() {
     expect(decoded.accounts.length, 1);
     expect(decoded.transfers.length, 1);
     expect(decoded.budgets.first.amountCents, 300000);
+    expect(decoded.debts.first.counterparty, '张三');
+    expect(decoded.debtRepayments.first.debtId, 1);
+    expect(decoded.tags.first.name, '旅行');
+    expect(decoded.transactionTags.first['tag_id'], 1);
   });
 }
