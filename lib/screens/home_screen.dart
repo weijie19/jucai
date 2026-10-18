@@ -8,6 +8,7 @@ import '../services/amount.dart';
 import '../widgets/category_icons.dart';
 import 'account_screen.dart';
 import 'add_transaction_screen.dart';
+import 'budget_screen.dart';
 import 'category_screen.dart';
 import 'import_screen.dart';
 import 'settings_screen.dart';
@@ -108,6 +109,13 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.swap_horiz),
             onPressed: () async {
               await Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferScreen()));
+              _reload();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.savings_outlined),
+            onPressed: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetScreen()));
               _reload();
             },
           ),
