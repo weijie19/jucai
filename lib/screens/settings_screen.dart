@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../data/account_repository.dart';
+import '../data/budget_repository.dart';
 import '../data/category_repository.dart';
 import '../data/transaction_repository.dart';
+import '../data/transfer_repository.dart';
 import '../services/backup.dart';
 import '../services/webdav.dart';
 
@@ -66,6 +69,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final data = BackupData(
         categories: await catRepo.getAll(),
         transactions: await txRepo.getAll(),
+        accounts: await AccountRepository().getAll(),
+        transfers: await TransferRepository().getAll(),
+        budgets: await BudgetRepository().getAll(),
       );
       await uploadBackup(cfg, encodeBackup(data));
       if (!mounted) return;
@@ -115,13 +121,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _importData(BackupData data) async {
     final catRepo = CategoryRepository();
     final txRepo = TransactionRepository();
+    final accountRepo = AccountRepository();
+    final transferRepo = TransferRepository();
+    final budgetRepo = BudgetRepository();
+
     await txRepo.deleteAll();
+    await transferRepo.deleteAll();
+    await budgetRepo.deleteAll();
     await catRepo.deleteAll();
+    await accountRepo.deleteAll();
+
     for (final c in data.categories) {
       await catRepo.insert(c);
     }
+    for (final a in data.accounts) {
+      await accountRepo.insert(a);
+    }
     for (final t in data.transactions) {
       await txRepo.insert(t);
+    }
+    for (final t in data.transfers) {
+      await transferRepo.insert(t);
+    }
+    for (final b in data.budgets) {
+      await budgetRepo.upsert(b);
     }
   }
 
