@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../data/account_repository.dart';
+import '../data/budget_repository.dart';
 import '../data/category_repository.dart';
 import '../data/transaction_repository.dart';
 import '../models/account.dart';
 import '../models/models.dart';
 import '../services/amount.dart';
+import '../services/budget.dart';
 import '../widgets/category_icons.dart';
 import 'account_screen.dart';
 import 'add_transaction_screen.dart';
@@ -25,12 +27,15 @@ class _HomeScreenState extends State<HomeScreen> {
   final _txRepo = TransactionRepository();
   final _catRepo = CategoryRepository();
   final _accountRepo = AccountRepository();
+  final _budgetRepo = BudgetRepository();
 
   List<Transaction> _transactions = [];
   List<Category> _categories = [];
   List<Account> _accounts = [];
   int _expense = 0;
   int _income = 0;
+  int _budgetTotal = 0;
+  int _budgetSpent = 0;
   bool _loading = true;
 
   @override
@@ -46,6 +51,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final accounts = await _accountRepo.getAll();
     final expense = await _txRepo.sumByMonth(TxType.expense, now.year, now.month);
     final income = await _txRepo.sumByMonth(TxType.income, now.year, now.month);
+    final budgets = await _budgetRepo.getAll();
+    final total = budgets.where((b) => b.categoryId == null).toList();
+    final budgetTotal = total.isEmpty ? 0 : total.first.amountCents;
+    final budgetSpent = await _budgetRepo.spentThisMonth(now.year, now.month);
     if (!mounted) return;
     setState(() {
       _transactions = txs;
@@ -53,6 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _accounts = accounts;
       _expense = expense;
       _income = income;
+      _budgetTotal = budgetTotal;
+      _budgetSpent = budgetSpent;
       _loading = false;
     });
   }
@@ -164,26 +175,44 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSummary() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: Column(
-              children: [
-                const Text('本月支出'),
-                const SizedBox(height: 4),
-                Text('¥${formatCents(_expense)}', style: Theme.of(context).textTheme.titleLarge),
-              ],
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    const Text('本月支出'),
+                    const SizedBox(height: 4),
+                    Text('¥${formatCents(_expense)}', style: Theme.of(context).textTheme.titleLarge),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    const Text('本月收入'),
+                    const SizedBox(height: 4),
+                    Text('¥${formatCents(_income)}', style: Theme.of(context).textTheme.titleLarge),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: Column(
-              children: [
-                const Text('本月收入'),
-                const SizedBox(height: 4),
-                Text('¥${formatCents(_income)}', style: Theme.of(context).textTheme.titleLarge),
-              ],
+          if (_budgetTotal > 0) ...[
+            const SizedBox(height: 12),
+            Text(
+              '月预算 ¥${formatCents(_budgetTotal)} · 已用 ¥${formatCents(_budgetSpent)}',
+              style: Theme.of(context).textTheme.labelMedium,
             ),
-          ),
+            const SizedBox(height: 4),
+            LinearProgressIndicator(
+              value: budgetRatio(_budgetTotal, _budgetSpent),
+              minHeight: 6,
+              color: budgetRatio(_budgetTotal, _budgetSpent) >= 1.0 ? Colors.red : null,
+            ),
+          ],
         ],
       ),
     );
