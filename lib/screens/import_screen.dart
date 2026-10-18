@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:fast_gbk/fast_gbk.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../data/account_repository.dart';
 import '../data/category_repository.dart';
 import '../data/transaction_repository.dart';
+import '../models/account.dart';
 import '../models/models.dart';
 import '../services/amount.dart';
 import '../services/csv_import.dart';
@@ -58,6 +60,12 @@ class _ImportScreenState extends State<ImportScreen> {
       nameToId['${c.type.name}|${c.name}'] = c.id!;
     }
 
+    final accountRepo = AccountRepository();
+    final existingAccounts = await accountRepo.getAll();
+    final accountNameToId = <String, int>{
+      for (final a in existingAccounts) a.name: a.id!,
+    };
+
     var imported = 0;
     for (final r in valid) {
       final date = normalizeDate(r.date!);
@@ -74,6 +82,22 @@ class _ImportScreenState extends State<ImportScreen> {
         categoryId = cat.id!;
         nameToId['${r.type.name}|${r.categoryName ?? ''}'] = categoryId;
       }
+      final accountName = r.account?.trim();
+      int? accountId;
+      if (accountName != null && accountName.isNotEmpty) {
+        accountId = accountNameToId[accountName];
+        if (accountId == null) {
+          final acc = await accountRepo.insert(Account(
+            name: accountName,
+            type: AccountType.other,
+            icon: 'account_balance',
+            color: 0xFF90A4AE,
+            sortOrder: 100,
+          ));
+          accountId = acc.id!;
+          accountNameToId[accountName] = accountId;
+        }
+      }
       final now = DateTime.now().millisecondsSinceEpoch;
       await _txRepo.insert(Transaction(
         type: r.type,
@@ -81,7 +105,7 @@ class _ImportScreenState extends State<ImportScreen> {
         categoryId: categoryId,
         date: date,
         note: r.note,
-        account: r.account,
+        accountId: accountId,
         createdAt: now,
         updatedAt: now,
       ));

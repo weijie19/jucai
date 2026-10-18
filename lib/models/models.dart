@@ -43,7 +43,7 @@ class Transaction {
   final int categoryId;
   final String date; // yyyy-MM-dd
   final String? note;
-  final String? account;
+  final int? accountId;
   final int createdAt;
   final int updatedAt;
 
@@ -54,7 +54,7 @@ class Transaction {
     required this.categoryId,
     required this.date,
     this.note,
-    this.account,
+    this.accountId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -66,7 +66,7 @@ class Transaction {
         'category_id': categoryId,
         'date': date,
         'note': note,
-        'account': account,
+        'account_id': accountId,
         'created_at': createdAt,
         'updated_at': updatedAt,
       };
@@ -78,7 +78,7 @@ class Transaction {
         categoryId: m['category_id'] as int,
         date: m['date'] as String,
         note: m['note'] as String?,
-        account: m['account'] as String?,
+        accountId: m['account_id'] as int?,
         createdAt: m['created_at'] as int,
         updatedAt: m['updated_at'] as int,
       );

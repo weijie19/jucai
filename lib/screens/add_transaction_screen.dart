@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../data/account_repository.dart';
 import '../data/category_repository.dart';
 import '../data/transaction_repository.dart';
+import '../models/account.dart';
 import '../models/models.dart';
 import '../services/amount.dart';
 import '../widgets/category_icons.dart';
@@ -17,14 +19,16 @@ class AddTransactionScreen extends StatefulWidget {
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _catRepo = CategoryRepository();
   final _txRepo = TransactionRepository();
+  final _accountRepo = AccountRepository();
 
   TxType _type = TxType.expense;
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
-  final _accountController = TextEditingController();
   DateTime _date = DateTime.now();
   List<Category> _categories = [];
+  List<Account> _accounts = [];
   int? _categoryId;
+  int? _accountId;
   bool _loading = true;
 
   @override
@@ -35,19 +39,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _type = t.type;
       _amountController.text = formatCents(t.amountCents);
       _noteController.text = t.note ?? '';
-      _accountController.text = t.account ?? '';
       _date = DateTime.parse(t.date);
       _categoryId = t.categoryId;
+      _accountId = t.accountId;
     }
-    _loadCategories();
+    _load();
   }
 
-  Future<void> _loadCategories() async {
+  Future<void> _load() async {
     final cats = await _catRepo.getByType(_type);
+    final accounts = await _accountRepo.getAll();
     if (!mounted) return;
     setState(() {
       _categories = cats;
+      _accounts = accounts;
       if (_categoryId == null && cats.isNotEmpty) _categoryId = cats.first.id;
+      _accountId ??= accounts.isNotEmpty ? accounts.first.id : null;
       _loading = false;
     });
   }
@@ -69,9 +76,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       type: _type,
       amountCents: cents.abs(),
       categoryId: _categoryId!,
+      accountId: _accountId,
       date: date,
       note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-      account: _accountController.text.trim().isEmpty ? null : _accountController.text.trim(),
       createdAt: widget.transaction?.createdAt ?? now,
       updatedAt: now,
     );
@@ -88,7 +95,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void dispose() {
     _amountController.dispose();
     _noteController.dispose();
-    _accountController.dispose();
     super.dispose();
   }
 
@@ -139,6 +145,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   }).toList(),
                 ),
                 const SizedBox(height: 24),
+                Text('账户', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _accounts.map((a) {
+                    final selected = a.id == _accountId;
+                    return ChoiceChip(
+                      avatar: Icon(iconFor(a.icon), size: 18, color: selected ? Colors.white : Color(a.color)),
+                      label: Text(a.name),
+                      selected: selected,
+                      onSelected: (_) => setState(() => _accountId = a.id),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 24),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.event),
@@ -158,10 +180,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   controller: _noteController,
                   decoration: const InputDecoration(labelText: '备注（可选）'),
                 ),
-                TextField(
-                  controller: _accountController,
-                  decoration: const InputDecoration(labelText: '支付方式（可选）'),
-                ),
                 const SizedBox(height: 32),
                 FilledButton(
                   onPressed: _save,
@@ -173,5 +191,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ],
             ),
     );
+  }
+
+  Future<void> _loadCategories() async {
+    final cats = await _catRepo.getByType(_type);
+    if (!mounted) return;
+    setState(() {
+      _categories = cats;
+      if (_categoryId == null && cats.isNotEmpty) _categoryId = cats.first.id;
+    });
   }
 }

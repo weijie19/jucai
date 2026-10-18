@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../data/account_repository.dart';
 import '../data/category_repository.dart';
 import '../data/transaction_repository.dart';
+import '../models/account.dart';
 import '../models/models.dart';
 import '../services/amount.dart';
 import '../widgets/category_icons.dart';
@@ -19,9 +21,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _txRepo = TransactionRepository();
   final _catRepo = CategoryRepository();
+  final _accountRepo = AccountRepository();
 
   List<Transaction> _transactions = [];
   List<Category> _categories = [];
+  List<Account> _accounts = [];
   int _expense = 0;
   int _income = 0;
   bool _loading = true;
@@ -36,12 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     final txs = await _txRepo.getByMonth(now.year, now.month);
     final cats = await _catRepo.getAll();
+    final accounts = await _accountRepo.getAll();
     final expense = await _txRepo.sumByMonth(TxType.expense, now.year, now.month);
     final income = await _txRepo.sumByMonth(TxType.income, now.year, now.month);
     if (!mounted) return;
     setState(() {
       _transactions = txs;
       _categories = cats;
+      _accounts = accounts;
       _expense = expense;
       _income = income;
       _loading = false;
@@ -60,6 +66,14 @@ class _HomeScreenState extends State<HomeScreen> {
       if (c.id == id) return c;
     }
     return null;
+  }
+
+  String _accountName(int? id) {
+    if (id == null) return '';
+    for (final a in _accounts) {
+      if (a.id == id) return a.name;
+    }
+    return '';
   }
 
   @override
@@ -177,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Icon(iconFor(cat?.icon ?? 'more_horiz'), color: Colors.white, size: 20),
             ),
             title: Text(_catName(t.categoryId)),
-            subtitle: Text(t.note ?? ''),
+            subtitle: Text([t.note, _accountName(t.accountId)].where((s) => s != null && s.isNotEmpty).join(' · ')),
             trailing: Text(
               '${t.type == TxType.income ? '+' : '-'}${formatCents(t.amountCents)}',
               style: TextStyle(

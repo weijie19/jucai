@@ -13,7 +13,7 @@ class TransactionRepository {
       categoryId: t.categoryId,
       date: t.date,
       note: t.note,
-      account: t.account,
+      accountId: t.accountId,
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
     );
