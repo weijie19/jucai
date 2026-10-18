@@ -6,6 +6,7 @@ import '../models/account.dart';
 import '../models/models.dart';
 import '../services/amount.dart';
 import '../widgets/category_icons.dart';
+import 'account_screen.dart';
 import 'add_transaction_screen.dart';
 import 'category_screen.dart';
 import 'import_screen.dart';
@@ -92,6 +93,13 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.category_outlined),
             onPressed: () async {
               await Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoryScreen()));
+              _reload();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            onPressed: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountScreen()));
               _reload();
             },
           ),
