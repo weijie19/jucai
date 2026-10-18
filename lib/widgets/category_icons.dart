@@ -41,6 +41,16 @@ IconData iconFor(String key) {
       return Icons.work;
     case 'more_horiz':
       return Icons.more_horiz;
+    case 'account_balance_wallet':
+      return Icons.account_balance_wallet;
+    case 'chat':
+      return Icons.chat;
+    case 'credit_card':
+      return Icons.credit_card;
+    case 'account_balance':
+      return Icons.account_balance;
+    case 'savings':
+      return Icons.savings;
     default:
       return Icons.label;
   }
