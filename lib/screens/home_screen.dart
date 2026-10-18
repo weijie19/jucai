@@ -11,6 +11,7 @@ import 'add_transaction_screen.dart';
 import 'category_screen.dart';
 import 'import_screen.dart';
 import 'settings_screen.dart';
+import 'transfer_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -100,6 +101,13 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.account_balance_wallet_outlined),
             onPressed: () async {
               await Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountScreen()));
+              _reload();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.swap_horiz),
+            onPressed: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferScreen()));
               _reload();
             },
           ),
