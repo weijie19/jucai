@@ -31,6 +31,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _budgetTotal = 0;
   int _budgetSpent = 0;
   bool _loading = true;
+  int _year = DateTime.now().year;
+  int _month = DateTime.now().month;
 
   @override
   void initState() {
@@ -38,17 +40,30 @@ class _HomeScreenState extends State<HomeScreen> {
     _reload();
   }
 
-  Future<void> _reload() async {
+  void _shiftMonth(int delta) {
+    final d = DateTime(_year, _month + delta, 1);
+    _year = d.year;
+    _month = d.month;
+    _reload();
+  }
+
+  void _gotoNow() {
     final now = DateTime.now();
-    final txs = await _txRepo.getByMonth(now.year, now.month);
+    _year = now.year;
+    _month = now.month;
+    _reload();
+  }
+
+  Future<void> _reload() async {
+    final txs = await _txRepo.getByMonth(_year, _month);
     final cats = await _catRepo.getAll();
     final accounts = await _accountRepo.getAll();
-    final expense = await _txRepo.sumByMonth(TxType.expense, now.year, now.month);
-    final income = await _txRepo.sumByMonth(TxType.income, now.year, now.month);
+    final expense = await _txRepo.sumByMonth(TxType.expense, _year, _month);
+    final income = await _txRepo.sumByMonth(TxType.income, _year, _month);
     final budgets = await _budgetRepo.getAll();
     final total = budgets.where((b) => b.categoryId == null).toList();
     final budgetTotal = total.isEmpty ? 0 : total.first.amountCents;
-    final budgetSpent = await _budgetRepo.spentThisMonth(now.year, now.month);
+    final budgetSpent = await _budgetRepo.spentThisMonth(_year, _month);
     if (!mounted) return;
     setState(() {
       _transactions = txs;
@@ -119,6 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSummary() {
+    final isCurrent = _year == DateTime.now().year && _month == DateTime.now().month;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -126,10 +142,32 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Row(
             children: [
+              IconButton(
+                onPressed: () => _shiftMonth(-1),
+                icon: const Icon(Icons.chevron_left),
+              ),
               Expanded(
                 child: Column(
                   children: [
-                    const Text('本月支出'),
+                    Text('$_year年$_month月', style: Theme.of(context).textTheme.titleMedium),
+                    if (!isCurrent)
+                      TextButton(onPressed: _gotoNow, child: const Text('回到本月')),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () => _shiftMonth(1),
+                icon: const Icon(Icons.chevron_right),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    const Text('支出'),
                     const SizedBox(height: 4),
                     Text('¥${formatCents(_expense)}', style: Theme.of(context).textTheme.titleLarge),
                   ],
@@ -138,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: Column(
                   children: [
-                    const Text('本月收入'),
+                    const Text('收入'),
                     const SizedBox(height: 4),
                     Text('¥${formatCents(_income)}', style: Theme.of(context).textTheme.titleLarge),
                   ],

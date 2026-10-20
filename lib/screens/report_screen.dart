@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../data/database.dart';
+import '../models/models.dart';
 import '../services/amount.dart';
 
 class ReportScreen extends StatefulWidget {
@@ -31,11 +32,17 @@ class _ReportScreenState extends State<ReportScreen> {
   int _monthExpense = 0;
   int _monthIncome = 0;
   bool _loading = true;
+  TxType _pieType = TxType.expense;
 
   @override
   void initState() {
     super.initState();
     _reload();
+  }
+
+  void _setPieType(TxType t) {
+    setState(() => _pieType = t);
+    _loadPie();
   }
 
   Future<void> _reload() async {
@@ -71,7 +78,28 @@ class _ReportScreenState extends State<ReportScreen> {
       ));
     }
 
-    // 当月分类支出占比
+    // 当月收支汇总
+    final monthStart = '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
+    final next = now.month == 12
+        ? '${now.year + 1}-01-01'
+        : '${now.year}-${(now.month + 1).toString().padLeft(2, '0')}-01';
+    final monthExpense = await _sumMonth(db, 'expense', monthStart, next);
+    final monthIncome = await _sumMonth(db, 'income', monthStart, next);
+
+    if (!mounted) return;
+    setState(() {
+      _months = months;
+      _monthExpense = monthExpense;
+      _monthIncome = monthIncome;
+      _loading = false;
+    });
+
+    await _loadPie();
+  }
+
+  Future<void> _loadPie() async {
+    final db = await AppDatabase.instance.database;
+    final now = DateTime.now();
     final monthStart = '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
     final next = now.month == 12
         ? '${now.year + 1}-01-01'
@@ -81,7 +109,7 @@ class _ReportScreenState extends State<ReportScreen> {
       'FROM transactions t JOIN categories c ON t.category_id = c.id '
       'WHERE t.type = ? AND t.date >= ? AND t.date < ? '
       'GROUP BY t.category_id ORDER BY s DESC',
-      ['expense', monthStart, next],
+      [_pieType.name, monthStart, next],
     );
     var totalCents = 0;
     for (final r in catRows) {
@@ -97,18 +125,8 @@ class _ReportScreenState extends State<ReportScreen> {
         totalCents == 0 ? 0 : cents / totalCents * 100,
       ));
     }
-
-    final monthExpense = await _sumMonth(db, 'expense', monthStart, next);
-    final monthIncome = await _sumMonth(db, 'income', monthStart, next);
-
     if (!mounted) return;
-    setState(() {
-      _months = months;
-      _slices = slices;
-      _monthExpense = monthExpense;
-      _monthIncome = monthIncome;
-      _loading = false;
-    });
+    setState(() => _slices = slices);
   }
 
   Future<int> _sumMonth(dynamic db, String type, String start, String next) async {
@@ -135,7 +153,19 @@ class _ReportScreenState extends State<ReportScreen> {
                 const SizedBox(height: 8),
                 _buildTrendChart(),
                 const SizedBox(height: 24),
-                Text('本月分类支出占比', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  _pieType == TxType.expense ? '本月分类支出占比' : '本月分类收入占比',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<TxType>(
+                  segments: const [
+                    ButtonSegment(value: TxType.expense, label: Text('支出')),
+                    ButtonSegment(value: TxType.income, label: Text('收入')),
+                  ],
+                  selected: {_pieType},
+                  onSelectionChanged: (s) => _setPieType(s.first),
+                ),
                 const SizedBox(height: 8),
                 _buildPieChart(),
               ],
@@ -222,9 +252,9 @@ class _ReportScreenState extends State<ReportScreen> {
 
   Widget _buildPieChart() {
     if (_slices.isEmpty) {
-      return const SizedBox(
+      return SizedBox(
         height: 200,
-        child: Center(child: Text('本月暂无支出')),
+        child: Center(child: Text(_pieType == TxType.expense ? '本月暂无支出' : '本月暂无收入')),
       );
     }
     return SizedBox(
