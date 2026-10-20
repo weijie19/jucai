@@ -41,6 +41,7 @@ Future<DateTime?> showWheelDatePicker(
               initialDateTime: initialDate,
               minimumDate: firstDate ?? DateTime(2000),
               maximumDate: lastDate ?? DateTime(2100),
+              use24hFormat: withTime,
               onDateTimeChanged: (d) => selected = d,
             ),
           ),
