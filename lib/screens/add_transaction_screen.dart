@@ -9,6 +9,7 @@ import '../models/models.dart';
 import '../models/tag.dart';
 import '../services/amount.dart';
 import '../widgets/category_icons.dart';
+import '../widgets/wheel_date_picker.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final Transaction? transaction;
@@ -337,12 +338,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
+    final picked = await showWheelDatePicker(context, initialDate: _date);
     if (picked != null) setState(() => _date = picked);
   }
 

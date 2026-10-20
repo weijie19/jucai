@@ -6,6 +6,7 @@ import '../models/account.dart';
 import '../models/debt.dart';
 import '../models/debt_repayment.dart';
 import '../services/amount.dart';
+import '../widgets/wheel_date_picker.dart';
 
 class DebtScreen extends StatefulWidget {
   const DebtScreen({super.key});
@@ -320,12 +321,7 @@ class _DebtDialogState extends State<_DebtDialog> {
               title: Text(DateFormat('yyyy-MM-dd').format(_date)),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _date,
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2100),
-                );
+                final picked = await showWheelDatePicker(context, initialDate: _date);
                 if (picked != null) setState(() => _date = picked);
               },
             ),
@@ -432,12 +428,7 @@ class _RepayDialogState extends State<_RepayDialog> {
               title: Text(DateFormat('yyyy-MM-dd').format(_date)),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _date,
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2100),
-                );
+                final picked = await showWheelDatePicker(context, initialDate: _date);
                 if (picked != null) setState(() => _date = picked);
               },
             ),

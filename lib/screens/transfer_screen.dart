@@ -6,6 +6,7 @@ import '../models/account.dart';
 import '../models/transfer.dart';
 import '../services/amount.dart';
 import '../widgets/category_icons.dart';
+import '../widgets/wheel_date_picker.dart';
 
 class TransferScreen extends StatefulWidget {
   const TransferScreen({super.key});
@@ -120,12 +121,7 @@ class _TransferScreenState extends State<TransferScreen> {
                       title: Text(DateFormat('yyyy-MM-dd').format(_date)),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: _date,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
+                        final picked = await showWheelDatePicker(context, initialDate: _date);
                         if (picked != null) setState(() => _date = picked);
                       },
                     ),
