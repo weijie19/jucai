@@ -66,6 +66,17 @@ class TransactionRepository {
     return rows.map(Transaction.fromMap).toList();
   }
 
+  Future<List<Transaction>> getByAccount(int accountId) async {
+    final db = await AppDatabase.instance.database;
+    final rows = await db.query(
+      'transactions',
+      where: 'account_id = ?',
+      whereArgs: [accountId],
+      orderBy: 'date DESC, id DESC',
+    );
+    return rows.map(Transaction.fromMap).toList();
+  }
+
   Future<int> sumByMonth(TxType type, int year, int month) async {
     final db = await AppDatabase.instance.database;
     final start = '$year-${month.toString().padLeft(2, '0')}-01';

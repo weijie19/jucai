@@ -3,6 +3,7 @@ import '../data/account_repository.dart';
 import '../models/account.dart';
 import '../services/amount.dart';
 import '../widgets/category_icons.dart';
+import 'account_detail_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -119,6 +120,10 @@ class _AccountScreenState extends State<AccountScreen> {
                               onPressed: () => _confirmDelete(a),
                             ),
                           ],
+                        ),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => AccountDetailScreen(account: a)),
                         ),
                       ),
                     )),
