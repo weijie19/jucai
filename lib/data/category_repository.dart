@@ -12,8 +12,19 @@ class CategoryRepository {
     final db = await AppDatabase.instance.database;
     final rows = await db.query(
       'categories',
-      where: 'type = ?',
+      where: 'type = ? AND parent_id IS NULL',
       whereArgs: [type.name],
+      orderBy: 'sortOrder, id',
+    );
+    return rows.map(Category.fromMap).toList();
+  }
+
+  Future<List<Category>> getChildren(int parentId) async {
+    final db = await AppDatabase.instance.database;
+    final rows = await db.query(
+      'categories',
+      where: 'parent_id = ?',
+      whereArgs: [parentId],
       orderBy: 'sortOrder, id',
     );
     return rows.map(Category.fromMap).toList();

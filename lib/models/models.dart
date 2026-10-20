@@ -7,6 +7,7 @@ class Category {
   final String icon;
   final int color;
   final int sortOrder;
+  final int? parentId;
 
   const Category({
     this.id,
@@ -15,6 +16,7 @@ class Category {
     required this.icon,
     required this.color,
     required this.sortOrder,
+    this.parentId,
   });
 
   Map<String, dynamic> toMap() => {
@@ -24,6 +26,7 @@ class Category {
         'icon': icon,
         'color': color,
         'sortOrder': sortOrder,
+        'parent_id': parentId,
       };
 
   factory Category.fromMap(Map<String, dynamic> m) => Category(
@@ -33,6 +36,7 @@ class Category {
         icon: m['icon'] as String,
         color: m['color'] as int,
         sortOrder: m['sortOrder'] as int,
+        parentId: m['parent_id'] as int?,
       );
 }
 
@@ -104,4 +108,17 @@ List<Category> defaultCategories() {
     Category(name: '兼职', type: TxType.income, icon: 'work', color: 0xFF29B6F6, sortOrder: 4),
     Category(name: '其他', type: TxType.income, icon: 'more_horiz', color: 0xFF90A4AE, sortOrder: 5),
   ];
+}
+
+/// 支出大类目下的子类清单。key 为大类名，value 为其子类名（按顺序）。
+Map<String, List<String>> expenseSubCategories() {
+  return const {
+    '餐饮': ['早餐', '午餐', '晚餐', '零食', '饮品', '外卖'],
+    '交通': ['公交', '地铁', '打车', '加油', '停车', '火车飞机', '保险', '高速', '维修', '保养'],
+    '购物': ['日用品', '服饰', '数码', '美妆', '母婴'],
+    '居住': ['房租', '水电燃气', '物业', '维修', '宽带'],
+    '娱乐': ['电影', '游戏', 'KTV', '旅游', '运动'],
+    '医疗': ['药品', '门诊', '住院', '体检'],
+    '人情': ['请客', '红包', '礼物', '随份子'],
+  };
 }

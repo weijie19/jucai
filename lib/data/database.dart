@@ -22,7 +22,7 @@ class AppDatabase {
     final path = p.join(dir.path, 'jucai.db');
     return openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -36,7 +36,8 @@ class AppDatabase {
         type TEXT NOT NULL,
         icon TEXT NOT NULL,
         color INTEGER NOT NULL,
-        sortOrder INTEGER NOT NULL
+        sortOrder INTEGER NOT NULL,
+        parent_id INTEGER
       )
     ''');
     await createAccountTables(db);
@@ -59,6 +60,7 @@ class AppDatabase {
     await createDebtTagTables(db);
     await createPlanTable(db);
     await _seedDefaultCategories(db);
+    await _seedSubCategories(db);
     await _seedDefaultAccounts(db);
   }
 
@@ -75,6 +77,10 @@ class AppDatabase {
     }
     if (oldVersion < 5) {
       await db.execute('ALTER TABLE transactions ADD COLUMN time TEXT');
+    }
+    if (oldVersion < 6) {
+      await db.execute('ALTER TABLE categories ADD COLUMN parent_id INTEGER');
+      await _seedSubCategories(db);
     }
   }
 
@@ -96,6 +102,38 @@ class AppDatabase {
       batch.insert('categories', c.toMap()..remove('id'));
     }
     await batch.commit(noResult: true);
+  }
+
+  /// 为支出大类目补种子类（幂等：已存在的子类跳过）。
+  Future<void> _seedSubCategories(DatabaseExecutor db) async {
+    for (final entry in expenseSubCategories().entries) {
+      final parents = await db.query(
+        'categories',
+        where: 'name = ? AND type = ? AND parent_id IS NULL',
+        whereArgs: [entry.key, 'expense'],
+      );
+      if (parents.isEmpty) continue;
+      final parent = parents.first;
+      final parentId = parent['id'] as int;
+      final icon = parent['icon'] as String;
+      final color = parent['color'] as int;
+      for (var i = 0; i < entry.value.length; i++) {
+        final existing = await db.query(
+          'categories',
+          where: 'name = ? AND parent_id = ?',
+          whereArgs: [entry.value[i], parentId],
+        );
+        if (existing.isNotEmpty) continue;
+        await db.insert('categories', {
+          'name': entry.value[i],
+          'type': 'expense',
+          'icon': icon,
+          'color': color,
+          'sortOrder': i + 1,
+          'parent_id': parentId,
+        });
+      }
+    }
   }
 
   Future<void> _seedDefaultAccounts(Database db) async {

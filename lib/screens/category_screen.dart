@@ -53,6 +53,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Widget _section(String title, List<Category> cats) {
+    final parents = cats.where((c) => c.parentId == null).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -60,14 +61,29 @@ class _CategoryScreenState extends State<CategoryScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(title, style: Theme.of(context).textTheme.labelLarge),
         ),
-        ...cats.map((c) => ListTile(
+        ...parents.expand((p) {
+          final children = cats.where((c) => c.parentId == p.id).toList();
+          return [
+            ListTile(
               leading: CircleAvatar(
-                backgroundColor: Color(c.color),
-                child: Icon(iconFor(c.icon), color: Colors.white, size: 20),
+                backgroundColor: Color(p.color),
+                child: Icon(iconFor(p.icon), color: Colors.white, size: 20),
               ),
-              title: Text(c.name),
-              onTap: () => _edit(c),
-            )),
+              title: Text(p.name),
+              onTap: () => _edit(p),
+            ),
+            ...children.map((child) => ListTile(
+                  contentPadding: const EdgeInsets.only(left: 48),
+                  leading: CircleAvatar(
+                    radius: 14,
+                    backgroundColor: Color(child.color),
+                    child: Icon(iconFor(child.icon), color: Colors.white, size: 14),
+                  ),
+                  title: Text(child.name, style: const TextStyle(fontSize: 14)),
+                  onTap: () => _edit(child),
+                )),
+          ];
+        }),
       ],
     );
   }
@@ -101,6 +117,8 @@ class _CategoryEditDialogState extends State<CategoryEditDialog> {
   TxType _type = TxType.expense;
   String _icon = 'more_horiz';
   int _color = 0xFF90A4AE;
+  int? _parentId;
+  List<Category> _allCats = [];
   final _repo = CategoryRepository();
 
   @override
@@ -112,7 +130,15 @@ class _CategoryEditDialogState extends State<CategoryEditDialog> {
       _type = c.type;
       _icon = c.icon;
       _color = c.color;
+      _parentId = c.parentId;
     }
+    _loadCats();
+  }
+
+  Future<void> _loadCats() async {
+    final cats = await _repo.getAll();
+    if (!mounted) return;
+    setState(() => _allCats = cats);
   }
 
   @override
@@ -131,6 +157,7 @@ class _CategoryEditDialogState extends State<CategoryEditDialog> {
       icon: _icon,
       color: _color,
       sortOrder: widget.category?.sortOrder ?? 100,
+      parentId: _parentId,
     );
     Navigator.pop(context, cat);
   }
@@ -154,7 +181,22 @@ class _CategoryEditDialogState extends State<CategoryEditDialog> {
                 ButtonSegment(value: TxType.income, label: Text('收入')),
               ],
               selected: {_type},
-              onSelectionChanged: (s) => setState(() => _type = s.first),
+              onSelectionChanged: (s) => setState(() {
+                _type = s.first;
+                _parentId = null;
+              }),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int?>(
+              initialValue: _parentId,
+              decoration: const InputDecoration(labelText: '所属大类（可选）'),
+              items: [
+                const DropdownMenuItem<int?>(value: null, child: Text('无（作为大类）')),
+                ..._allCats
+                    .where((c) => c.type == _type && c.parentId == null)
+                    .map((p) => DropdownMenuItem<int?>(value: p.id, child: Text(p.name))),
+              ],
+              onChanged: (v) => setState(() => _parentId = v),
             ),
             const SizedBox(height: 12),
             Wrap(

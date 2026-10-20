@@ -105,10 +105,13 @@ class _ReportScreenState extends State<ReportScreen> {
         ? '${now.year + 1}-01-01'
         : '${now.year}-${(now.month + 1).toString().padLeft(2, '0')}-01';
     final catRows = await db.rawQuery(
-      'SELECT c.name AS name, c.color AS color, SUM(t.amount_cents) AS s '
-      'FROM transactions t JOIN categories c ON t.category_id = c.id '
+      'SELECT COALESCE(p.id, c.id) AS pid, COALESCE(p.name, c.name) AS name, '
+      'COALESCE(p.color, c.color) AS color, SUM(t.amount_cents) AS s '
+      'FROM transactions t '
+      'JOIN categories c ON t.category_id = c.id '
+      'LEFT JOIN categories p ON c.parent_id = p.id '
       'WHERE t.type = ? AND t.date >= ? AND t.date < ? '
-      'GROUP BY t.category_id ORDER BY s DESC',
+      'GROUP BY pid ORDER BY s DESC',
       [_pieType.name, monthStart, next],
     );
     var totalCents = 0;

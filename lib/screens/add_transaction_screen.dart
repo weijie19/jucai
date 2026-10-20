@@ -40,6 +40,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _counterpartyController = TextEditingController();
   DateTime _date = DateTime.now();
   List<Category> _categories = [];
+  List<Category> _allCats = [];
+  List<Category> _children = [];
+  int? _activeParentId;
+  int? _selectedParentId;
   List<Account> _accounts = [];
   List<Tag> _tags = [];
   List<int> _selectedTagIds = [];
@@ -49,6 +53,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   int? _toId;
   DebtDirection _debtDirection = DebtDirection.lend;
   bool _loading = true;
+  bool _noteCollapsed = false;
 
   @override
   void initState() {
@@ -75,6 +80,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Future<void> _load() async {
     final accounts = await _accountRepo.getAll();
     final tags = await _tagRepo.getAll();
+    final allCats = await _catRepo.getAll();
     final selectedTagIds = <int>[];
     if (widget.transaction != null) {
       final existing = await _tagRepo.tagsForTransaction(widget.transaction!.id!);
@@ -84,6 +90,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     setState(() {
       _accounts = accounts;
       _tags = tags;
+      _allCats = allCats;
       _selectedTagIds = selectedTagIds;
       _accountId ??= accounts.isNotEmpty ? accounts.first.id : null;
       if (accounts.length >= 2) {
@@ -100,8 +107,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     if (!mounted) return;
     setState(() {
       _categories = cats;
+      _activeParentId = null;
+      _children = [];
       if (_categoryId == null && cats.isNotEmpty) _categoryId = cats.first.id;
+      _selectedParentId = _parentIdOf(_categoryId);
     });
+  }
+
+  int? _parentIdOf(int? categoryId) {
+    if (categoryId == null) return null;
+    for (final c in _allCats) {
+      if (c.id == categoryId) return c.parentId;
+    }
+    return null;
   }
 
   Future<void> _save({bool keepAdding = false}) async {
@@ -304,7 +322,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     if (_isTxMode) {
       return Column(
         children: [
-          _buildSelectedCategory(),
+          if (_activeParentId == null)
+            _buildSelectedCategory()
+          else
+            _buildChildHeader(),
           Expanded(child: _buildCategoryGrid()),
         ],
       );
@@ -314,10 +335,23 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   String _selectedCategoryName() {
-    for (final c in _categories) {
-      if (c.id == _categoryId) return c.name;
+    if (_categoryId == null) {
+      return _categories.isNotEmpty ? _categories.first.name : '';
     }
-    return _categories.isNotEmpty ? _categories.first.name : '';
+    Category? cat;
+    for (final c in _allCats) {
+      if (c.id == _categoryId) {
+        cat = c;
+        break;
+      }
+    }
+    if (cat == null) return '';
+    if (cat.parentId != null) {
+      for (final p in _allCats) {
+        if (p.id == cat.parentId) return '${p.name} · ${cat.name}';
+      }
+    }
+    return cat.name;
   }
 
   Widget _buildSelectedCategory() {
@@ -330,7 +364,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Widget _buildCategoryGrid() {
-    if (_categories.isEmpty) {
+    final items = _activeParentId == null ? _categories : _children;
+    if (items.isEmpty) {
       return const Center(child: Text('暂无分类，请先在「我的-分类管理」中添加'));
     }
     return GridView.builder(
@@ -341,13 +376,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         crossAxisSpacing: 10,
         childAspectRatio: 0.82,
       ),
-      itemCount: _categories.length,
+      itemCount: items.length,
       itemBuilder: (context, i) {
-        final c = _categories[i];
-        final selected = c.id == _categoryId;
+        final c = items[i];
+        final selected = _isSelected(c);
         return InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => setState(() => _categoryId = c.id),
+          onTap: () => _onCategoryTap(c),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -372,6 +407,76 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         );
       },
     );
+  }
+
+  bool _isSelected(Category c) {
+    if (_activeParentId == null) {
+      return c.id == _categoryId || c.id == _selectedParentId;
+    }
+    return c.id == _categoryId;
+  }
+
+  Future<void> _onCategoryTap(Category c) async {
+    if (_activeParentId == null) {
+      final children = await _catRepo.getChildren(c.id!);
+      if (!mounted) return;
+      if (children.isEmpty) {
+        setState(() {
+          _categoryId = c.id;
+          _selectedParentId = null;
+        });
+      } else {
+        setState(() {
+          _activeParentId = c.id;
+          _children = children;
+        });
+      }
+    } else {
+      setState(() {
+        _categoryId = c.id;
+        _selectedParentId = _activeParentId;
+        _activeParentId = null;
+        _children = [];
+      });
+    }
+  }
+
+  Widget _buildChildHeader() {
+    final parentName = _parentNameOf(_activeParentId);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => setState(() {
+              _activeParentId = null;
+              _children = [];
+            }),
+            icon: const Icon(Icons.arrow_back, size: 20),
+          ),
+          Expanded(
+            child: Text('$parentName · 选择小类', style: Theme.of(context).textTheme.titleMedium),
+          ),
+          TextButton(
+            onPressed: () => setState(() {
+              _categoryId = _activeParentId;
+              _selectedParentId = null;
+              _activeParentId = null;
+              _children = [];
+            }),
+            child: const Text('直接记此大类'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _parentNameOf(int? id) {
+    if (id == null) return '';
+    for (final c in _allCats) {
+      if (c.id == id) return c.name;
+    }
+    return '';
   }
 
   Widget _buildTransferForm() {
@@ -441,6 +546,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _pickAccountFor(ValueChanged<int?> onChanged, int? current) async {
+    setState(() => _noteCollapsed = true);
     final selected = await showModalBottomSheet<int>(
       context: context,
       builder: (context) => SafeArea(
@@ -465,6 +571,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         ),
       ),
     );
+    if (!mounted) return;
+    setState(() => _noteCollapsed = false);
     if (selected != null) onChanged(selected);
   }
 
@@ -507,12 +615,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Widget _buildNoteField() {
+    final lines = _noteCollapsed ? 1 : 3;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: TextField(
         controller: _noteController,
-        minLines: 8,
-        maxLines: 8,
+        minLines: lines,
+        maxLines: lines,
         textAlignVertical: TextAlignVertical.top,
         decoration: InputDecoration(
           hintText: '备注（可选）',
@@ -555,11 +664,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _pickDate() async {
+    setState(() => _noteCollapsed = true);
     final picked = await showWheelDatePicker(context, initialDate: _date, withTime: true);
-    if (picked != null) setState(() => _date = picked);
+    if (!mounted) return;
+    setState(() {
+      _noteCollapsed = false;
+      if (picked != null) _date = picked;
+    });
   }
 
   Future<void> _pickTags() async {
+    setState(() => _noteCollapsed = true);
     final selected = await showModalBottomSheet<List<int>>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -609,6 +724,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         },
       ),
     );
+    if (!mounted) return;
+    setState(() => _noteCollapsed = false);
     if (selected != null) setState(() => _selectedTagIds = selected);
   }
 }
