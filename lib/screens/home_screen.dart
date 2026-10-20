@@ -228,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Icon(iconFor(cat?.icon ?? 'more_horiz'), color: Colors.white, size: 20),
             ),
             title: Text(_catName(t.categoryId)),
-            subtitle: Text([t.note, _accountName(t.accountId)].where((s) => s != null && s.isNotEmpty).join(' · ')),
+            subtitle: Text([t.time, t.note, _accountName(t.accountId)].where((s) => s != null && s.isNotEmpty).join(' · ')),
             trailing: Text(
               '${t.type == TxType.income ? '+' : '-'}${formatCents(t.amountCents)}',
               style: TextStyle(

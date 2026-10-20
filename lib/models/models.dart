@@ -42,6 +42,7 @@ class Transaction {
   final int amountCents;
   final int categoryId;
   final String date; // yyyy-MM-dd
+  final String? time; // HH:mm，可为空
   final String? note;
   final int? accountId;
   final int createdAt;
@@ -53,6 +54,7 @@ class Transaction {
     required this.amountCents,
     required this.categoryId,
     required this.date,
+    this.time,
     this.note,
     this.accountId,
     required this.createdAt,
@@ -65,6 +67,7 @@ class Transaction {
         'amount_cents': amountCents,
         'category_id': categoryId,
         'date': date,
+        'time': time,
         'note': note,
         'account_id': accountId,
         'created_at': createdAt,
@@ -77,6 +80,7 @@ class Transaction {
         amountCents: m['amount_cents'] as int,
         categoryId: m['category_id'] as int,
         date: m['date'] as String,
+        time: m['time'] as String?,
         note: m['note'] as String?,
         accountId: m['account_id'] as int?,
         createdAt: m['created_at'] as int,

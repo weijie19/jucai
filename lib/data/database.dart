@@ -22,7 +22,7 @@ class AppDatabase {
     final path = p.join(dir.path, 'jucai.db');
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -48,6 +48,7 @@ class AppDatabase {
         category_id INTEGER NOT NULL,
         account_id INTEGER,
         date TEXT NOT NULL,
+        time TEXT,
         note TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
@@ -71,6 +72,9 @@ class AppDatabase {
     }
     if (oldVersion < 4) {
       await createPlanTable(db);
+    }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE transactions ADD COLUMN time TEXT');
     }
   }
 

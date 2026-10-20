@@ -45,7 +45,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _type = t.type;
       _amountController.text = formatCents(t.amountCents);
       _noteController.text = t.note ?? '';
-      _date = DateTime.parse(t.date);
+      final d = DateTime.parse(t.date);
+      _date = t.time == null
+          ? d
+          : DateTime(d.year, d.month, d.day, int.parse(t.time!.substring(0, 2)), int.parse(t.time!.substring(3, 5)));
       _categoryId = t.categoryId;
       _accountId = t.accountId;
     }
@@ -101,6 +104,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       categoryId: _categoryId!,
       accountId: _accountId,
       date: date,
+      time: DateFormat('HH:mm').format(_date),
       note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
       createdAt: widget.transaction?.createdAt ?? now,
       updatedAt: now,
@@ -245,7 +249,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       child: Row(
         children: [
           Expanded(child: _fieldChip(Icons.account_balance_wallet_outlined, _accountName(), _pickAccount)),
-          Expanded(child: _fieldChip(Icons.event_outlined, DateFormat('MM-dd').format(_date), _pickDate)),
+          Expanded(child: _fieldChip(Icons.event_outlined, DateFormat('MM-dd HH:mm').format(_date), _pickDate)),
           Expanded(
             child: _fieldChip(
               Icons.edit_note_outlined,
@@ -338,7 +342,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showWheelDatePicker(context, initialDate: _date);
+    final picked = await showWheelDatePicker(context, initialDate: _date, withTime: true);
     if (picked != null) setState(() => _date = picked);
   }
 

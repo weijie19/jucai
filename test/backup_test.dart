@@ -21,6 +21,7 @@ void main() {
           categoryId: 1,
           accountId: 2,
           date: '2022-05-17',
+          time: '12:30',
           note: '午饭',
           createdAt: 1,
           updatedAt: 1,
@@ -64,6 +65,7 @@ void main() {
     expect(decoded.categories.length, 1);
     expect(decoded.categories.first.name, '餐饮');
     expect(decoded.transactions.first.accountId, 2);
+    expect(decoded.transactions.first.time, '12:30');
     expect(decoded.accounts.length, 1);
     expect(decoded.transfers.length, 1);
     expect(decoded.budgets.first.amountCents, 300000);
