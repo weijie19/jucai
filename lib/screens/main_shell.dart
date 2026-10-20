@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/plan_repository.dart';
 import 'account_screen.dart';
 import 'add_transaction_screen.dart';
 import 'home_screen.dart';
@@ -22,6 +23,18 @@ class _MainShellState extends State<MainShell> {
     PlanScreen(),
     ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _runDuePlans();
+  }
+
+  /// 启动时把到期的周期账自动记入流水。
+  Future<void> _runDuePlans() async {
+    final n = await PlanRepository().runDuePlans();
+    if (n > 0 && mounted) setState(() => _refreshTick++);
+  }
 
   Future<void> _addTransaction() async {
     await Navigator.push(

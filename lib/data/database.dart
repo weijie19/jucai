@@ -22,7 +22,7 @@ class AppDatabase {
     final path = p.join(dir.path, 'jucai.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -56,6 +56,7 @@ class AppDatabase {
       )
     ''');
     await createDebtTagTables(db);
+    await createPlanTable(db);
     await _seedDefaultCategories(db);
     await _seedDefaultAccounts(db);
   }
@@ -67,6 +68,9 @@ class AppDatabase {
     }
     if (oldVersion < 3) {
       await createDebtTagTables(db);
+    }
+    if (oldVersion < 4) {
+      await createPlanTable(db);
     }
   }
 
@@ -181,6 +185,29 @@ Future<void> createDebtTagTables(DatabaseExecutor db) async {
       PRIMARY KEY (transaction_id, tag_id),
       FOREIGN KEY (transaction_id) REFERENCES transactions(id),
       FOREIGN KEY (tag_id) REFERENCES tags(id)
+    )
+  ''');
+}
+
+/// 创建周期账表：periodic_plans。
+Future<void> createPlanTable(DatabaseExecutor db) async {
+  await db.execute('''
+    CREATE TABLE periodic_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      amount_cents INTEGER NOT NULL,
+      category_id INTEGER NOT NULL,
+      account_id INTEGER,
+      period TEXT NOT NULL,
+      day INTEGER NOT NULL,
+      month INTEGER,
+      note TEXT,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      last_run_date TEXT,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (category_id) REFERENCES categories(id),
+      FOREIGN KEY (account_id) REFERENCES accounts(id)
     )
   ''');
 }
