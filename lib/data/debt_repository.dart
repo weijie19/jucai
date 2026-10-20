@@ -16,6 +16,17 @@ class DebtRepository {
     return Debt.fromMap(rows.first);
   }
 
+  Future<List<Debt>> getByAccount(int accountId) async {
+    final db = await AppDatabase.instance.database;
+    final rows = await db.query(
+      'debts',
+      where: 'account_id = ?',
+      whereArgs: [accountId],
+      orderBy: 'date DESC, id DESC',
+    );
+    return rows.map(Debt.fromMap).toList();
+  }
+
   Future<Debt> insert(Debt d) async {
     final db = await AppDatabase.instance.database;
     final map = d.toMap();
@@ -88,6 +99,18 @@ class DebtRepository {
   Future<List<DebtRepayment>> getAllRepayments() async {
     final db = await AppDatabase.instance.database;
     final rows = await db.query('debt_repayments', orderBy: 'id');
+    return rows.map(DebtRepayment.fromMap).toList();
+  }
+
+  /// 某个账户下的还款记录。
+  Future<List<DebtRepayment>> getRepaymentsByAccount(int accountId) async {
+    final db = await AppDatabase.instance.database;
+    final rows = await db.query(
+      'debt_repayments',
+      where: 'account_id = ?',
+      whereArgs: [accountId],
+      orderBy: 'date DESC, id DESC',
+    );
     return rows.map(DebtRepayment.fromMap).toList();
   }
 

@@ -22,6 +22,17 @@ class TransferRepository {
     return rows.map(Transfer.fromMap).toList();
   }
 
+  Future<List<Transfer>> getByAccount(int accountId) async {
+    final db = await AppDatabase.instance.database;
+    final rows = await db.query(
+      'transfers',
+      where: 'from_account_id = ? OR to_account_id = ?',
+      whereArgs: [accountId, accountId],
+      orderBy: 'date DESC, id DESC',
+    );
+    return rows.map(Transfer.fromMap).toList();
+  }
+
   Future<void> delete(int id) async {
     final db = await AppDatabase.instance.database;
     await db.delete('transfers', where: 'id = ?', whereArgs: [id]);
