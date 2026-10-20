@@ -72,7 +72,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     });
   }
 
-  Future<void> _save() async {
+  Future<void> _loadCategories() async {
+    final cats = await _catRepo.getByType(_type);
+    if (!mounted) return;
+    setState(() {
+      _categories = cats;
+      if (_categoryId == null && cats.isNotEmpty) _categoryId = cats.first.id;
+    });
+  }
+
+  Future<void> _save({bool keepAdding = false}) async {
     final cents = parseAmountToCents(_amountController.text);
     if (cents == null || cents == 0) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入有效金额')));
@@ -103,7 +112,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       await _tagRepo.setTagsForTransaction(widget.transaction!.id!, _selectedTagIds);
     }
     if (!mounted) return;
-    Navigator.pop(context);
+    if (keepAdding) {
+      setState(() {
+        _amountController.clear();
+        _noteController.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存，继续记下一笔')));
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -113,132 +130,288 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     super.dispose();
   }
 
+  String _accountName() {
+    for (final a in _accounts) {
+      if (a.id == _accountId) return a.name;
+    }
+    return _accounts.isNotEmpty ? _accounts.first.name : '账户';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.transaction == null ? '记一笔' : '编辑记录')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
+          : Column(
               children: [
-                SegmentedButton<TxType>(
-                  segments: const [
-                    ButtonSegment(value: TxType.expense, label: Text('支出')),
-                    ButtonSegment(value: TxType.income, label: Text('收入')),
-                  ],
-                  selected: {_type},
-                  onSelectionChanged: (s) {
-                    setState(() {
-                      _type = s.first;
-                      _categoryId = null;
-                    });
-                    _loadCategories();
-                  },
+                _buildTypeSwitcher(),
+                _buildAmountField(),
+                Expanded(child: _buildCategoryGrid()),
+                _buildFields(),
+                _buildActions(),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildTypeSwitcher() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: SegmentedButton<TxType>(
+        segments: const [
+          ButtonSegment(value: TxType.expense, label: Text('支出')),
+          ButtonSegment(value: TxType.income, label: Text('收入')),
+        ],
+        selected: {_type},
+        onSelectionChanged: (s) {
+          setState(() {
+            _type = s.first;
+            _categoryId = null;
+          });
+          _loadCategories();
+        },
+      ),
+    );
+  }
+
+  Widget _buildAmountField() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: TextField(
+        controller: _amountController,
+        autofocus: true,
+        textAlign: TextAlign.center,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w600),
+        decoration: const InputDecoration(
+          prefixText: '¥ ',
+          hintText: '0.00',
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryGrid() {
+    if (_categories.isEmpty) {
+      return const Center(child: Text('暂无分类，请先在「我的-分类管理」中添加'));
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 0.82,
+      ),
+      itemCount: _categories.length,
+      itemBuilder: (context, i) {
+        final c = _categories[i];
+        final selected = c.id == _categoryId;
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => setState(() => _categoryId = c.id),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 25,
+                backgroundColor: selected ? Color(c.color) : Color(c.color).withValues(alpha: 0.16),
+                child: Icon(iconFor(c.icon), color: selected ? Colors.white : Color(c.color), size: 25),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                c.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: selected ? Theme.of(context).colorScheme.primary : null,
+                  fontWeight: selected ? FontWeight.w600 : null,
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(fontSize: 28),
-                  decoration: const InputDecoration(prefixText: '¥ ', hintText: '0.00'),
-                ),
-                const SizedBox(height: 24),
-                Text('分类', style: Theme.of(context).textTheme.labelLarge),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _categories.map((c) {
-                    final selected = c.id == _categoryId;
-                    return ChoiceChip(
-                      avatar: Icon(iconFor(c.icon), size: 18, color: selected ? Colors.white : Color(c.color)),
-                      label: Text(c.name),
-                      selected: selected,
-                      onSelected: (_) => setState(() => _categoryId = c.id),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 24),
-                Text('账户', style: Theme.of(context).textTheme.labelLarge),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _accounts.map((a) {
-                    final selected = a.id == _accountId;
-                    return ChoiceChip(
-                      avatar: Icon(iconFor(a.icon), size: 18, color: selected ? Colors.white : Color(a.color)),
-                      label: Text(a.name),
-                      selected: selected,
-                      onSelected: (_) => setState(() => _accountId = a.id),
-                    );
-                  }).toList(),
-                ),
-                if (_tags.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Text('标签', style: Theme.of(context).textTheme.labelLarge),
-                  const SizedBox(height: 8),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFields() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Row(
+        children: [
+          Expanded(child: _fieldChip(Icons.account_balance_wallet_outlined, _accountName(), _pickAccount)),
+          Expanded(child: _fieldChip(Icons.event_outlined, DateFormat('MM-dd').format(_date), _pickDate)),
+          Expanded(
+            child: _fieldChip(
+              Icons.edit_note_outlined,
+              _noteController.text.isEmpty ? '备注' : _noteController.text,
+              _pickNote,
+            ),
+          ),
+          if (_tags.isNotEmpty)
+            Expanded(
+              child: _fieldChip(
+                Icons.sell_outlined,
+                _selectedTagIds.isEmpty ? '标签' : '${_selectedTagIds.length}个标签',
+                _pickTags,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fieldChip(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Column(
+          children: [
+            Icon(icon, size: 20, color: Colors.grey),
+            const SizedBox(height: 4),
+            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActions() {
+    final editing = widget.transaction != null;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Row(
+        children: [
+          if (!editing) ...[
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _save(keepAdding: true),
+                child: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('再记')),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: FilledButton(
+              onPressed: () => _save(),
+              child: Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(editing ? '保存' : '保存')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickAccount() async {
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('选择账户', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            ..._accounts.map((a) => ListTile(
+                  leading: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Color(a.color),
+                    child: Icon(iconFor(a.icon), color: Colors.white, size: 16),
+                  ),
+                  title: Text(a.name),
+                  trailing: a.id == _accountId ? const Icon(Icons.check, color: Colors.green) : null,
+                  onTap: () => Navigator.pop(context, a.id),
+                )),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) setState(() => _accountId = selected);
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
+  Future<void> _pickNote() async {
+    final controller = TextEditingController(text: _noteController.text);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('备注'),
+        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(hintText: '输入备注')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('确定')),
+        ],
+      ),
+    );
+    if (result != null) setState(() => _noteController.text = result);
+  }
+
+  Future<void> _pickTags() async {
+    final selected = await showModalBottomSheet<List<int>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final current = List<int>.from(_selectedTagIds);
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('选择标签', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: _tags.map((tag) {
-                      final selected = _selectedTagIds.contains(tag.id);
+                      final on = current.contains(tag.id);
                       return FilterChip(
                         label: Text(tag.name),
-                        selected: selected,
+                        selected: on,
                         onSelected: (v) {
-                          setState(() {
+                          setSheetState(() {
                             if (v) {
-                              _selectedTagIds.add(tag.id!);
+                              current.add(tag.id!);
                             } else {
-                              _selectedTagIds.remove(tag.id!);
+                              current.remove(tag.id!);
                             }
                           });
                         },
                       );
                     }).toList(),
                   ),
-                ],
-                const SizedBox(height: 24),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.event),
-                  title: Text(DateFormat('yyyy-MM-dd').format(_date)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _date,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) setState(() => _date = picked);
-                  },
-                ),
-                TextField(
-                  controller: _noteController,
-                  decoration: const InputDecoration(labelText: '备注（可选）'),
-                ),
-                const SizedBox(height: 32),
-                FilledButton(
-                  onPressed: _save,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Text('保存'),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(context, current),
+                      child: const Text('确定'),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+          );
+        },
+      ),
     );
-  }
-
-  Future<void> _loadCategories() async {
-    final cats = await _catRepo.getByType(_type);
-    if (!mounted) return;
-    setState(() {
-      _categories = cats;
-      if (_categoryId == null && cats.isNotEmpty) _categoryId = cats.first.id;
-    });
+    if (selected != null) setState(() => _selectedTagIds = selected);
   }
 }

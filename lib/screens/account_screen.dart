@@ -71,13 +71,34 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final totalAssets = _balances.values.fold<int>(0, (sum, v) => sum + v);
     return Scaffold(
-      appBar: AppBar(title: const Text('账户')),
+      appBar: AppBar(
+        title: const Text('账户'),
+        actions: [
+          IconButton(icon: const Icon(Icons.add), onPressed: () => _edit()),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('总资产'),
+                        const SizedBox(height: 8),
+                        Text('¥${formatCents(totalAssets)}',
+                            style: Theme.of(context).textTheme.headlineMedium),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 ..._accounts.map((a) => Card(
                       child: ListTile(
                         leading: CircleAvatar(
@@ -103,10 +124,6 @@ class _AccountScreenState extends State<AccountScreen> {
                     )),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _edit(),
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

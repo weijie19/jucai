@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_shell.dart';
 import 'theme.dart';
 
 class JucaiApp extends StatelessWidget {
@@ -11,7 +11,7 @@ class JucaiApp extends StatelessWidget {
       title: '聚财',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      home: const HomeScreen(),
+      home: const MainShell(),
     );
   }
 }

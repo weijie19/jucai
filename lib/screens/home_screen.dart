@@ -8,16 +8,7 @@ import '../models/models.dart';
 import '../services/amount.dart';
 import '../services/budget.dart';
 import '../widgets/category_icons.dart';
-import 'account_screen.dart';
 import 'add_transaction_screen.dart';
-import 'budget_screen.dart';
-import 'category_screen.dart';
-import 'debt_screen.dart';
-import 'import_screen.dart';
-import 'report_screen.dart';
-import 'settings_screen.dart';
-import 'tag_screen.dart';
-import 'transfer_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -104,70 +95,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('聚财'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.category_outlined),
-            onPressed: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoryScreen()));
-              _reload();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.account_balance_wallet_outlined),
-            onPressed: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountScreen()));
-              _reload();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.swap_horiz),
-            onPressed: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const TransferScreen()));
-              _reload();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.savings_outlined),
-            onPressed: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const BudgetScreen()));
-              _reload();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.file_upload_outlined),
-            onPressed: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const ImportScreen()));
-              _reload();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (v) async {
-              switch (v) {
-                case 'debt':
-                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtScreen()));
-                  _reload();
-                  break;
-                case 'report':
-                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportScreen()));
-                  break;
-                case 'tag':
-                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const TagScreen()));
-                  _reload();
-                  break;
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'debt', child: Text('借贷')),
-              PopupMenuItem(value: 'report', child: Text('报表')),
-              PopupMenuItem(value: 'tag', child: Text('标签')),
-            ],
-          ),
-        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -188,13 +115,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddTransactionScreen()));
-          _reload();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
